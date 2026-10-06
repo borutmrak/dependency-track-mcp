@@ -61,6 +61,7 @@ mcp = FastMCP(
     Dependency Track Backend:
     - DEPENDENCY_TRACK_URL: Base URL of your Dependency Track instance (HTTPS required)
     - DEPENDENCY_TRACK_API_KEY: API key for server-to-API authentication (not for MCP clients)
+    - DEPENDENCY_TRACK_AUTH_MODE: api_key (default) or user_token (per-user sessions)
 
     Scopes:
     - read:projects - List and view projects
@@ -178,7 +179,10 @@ def main():
         logger.error("\nRequired environment variables:")
         logger.error("  - MCP_OAUTH_ISSUER (OAuth 2.1 provider, must use HTTPS)")
         logger.error("  - DEPENDENCY_TRACK_URL (Dependency Track instance, must use HTTPS)")
-        logger.error("  - DEPENDENCY_TRACK_API_KEY (API key for backend)")
+        logger.error(
+            "  - DEPENDENCY_TRACK_API_KEY (API key for backend, unless "
+            "DEPENDENCY_TRACK_AUTH_MODE=user_token)"
+        )
         logger.error("\nOptional environment variables:")
         logger.error("  - MCP_OAUTH_AUDIENCE")
         logger.error("  - MCP_OAUTH_REQUIRED_SCOPES")

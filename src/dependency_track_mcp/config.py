@@ -15,6 +15,7 @@ import tempfile
 import warnings
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urlparse
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
@@ -102,10 +103,24 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("url", "DEPENDENCY_TRACK_URL"),
         description="Base URL of the Dependency Track instance - MUST use HTTPS (e.g., https://dtrack.example.com)",
     )
-    api_key: str = Field(
-        ...,
+    auth_mode: Literal["api_key", "user_token"] = Field(
+        default="api_key",
+        validation_alias=AliasChoices("auth_mode", "DEPENDENCY_TRACK_AUTH_MODE"),
+        description=(
+            "How the server authenticates to Dependency Track: 'api_key' uses "
+            "DEPENDENCY_TRACK_API_KEY for every request; 'user_token' exchanges the "
+            "caller's OAuth access token for a Dependency Track session "
+            "(POST /api/v1/user/oidc/login), so requests run with that user's "
+            "permissions and portfolio access"
+        ),
+    )
+    api_key: str | None = Field(
+        default=None,
         validation_alias=AliasChoices("api_key", "DEPENDENCY_TRACK_API_KEY"),
-        description="API key for Dependency Track server-to-API authentication only",
+        description=(
+            "API key for Dependency Track server-to-API authentication only "
+            "(required when DEPENDENCY_TRACK_AUTH_MODE=api_key)"
+        ),
     )
     timeout: int = Field(
         default=30,
@@ -250,6 +265,11 @@ class Settings(BaseSettings):
             else:
                 # Generic OIDC format - try standard path
                 self.oauth_jwks_url = f"{self.oauth_issuer}/.well-known/jwks.json"
+
+        if self.auth_mode == "api_key" and not self.api_key:
+            raise ValueError(
+                "DEPENDENCY_TRACK_API_KEY is required when DEPENDENCY_TRACK_AUTH_MODE=api_key"
+            )
 
         # Check Dependency Track URL
         parsed_url = urlparse(self.url)

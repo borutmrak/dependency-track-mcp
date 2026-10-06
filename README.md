@@ -98,7 +98,8 @@ export MCP_OAUTH_RESOURCE_URI=https://your-mcp-host.example.com/mcp  # Optional
 
 # Dependency Track Backend (for server-to-API auth only)
 export DEPENDENCY_TRACK_URL=https://dependency-track.example.com
-export DEPENDENCY_TRACK_API_KEY=your-dtrack-api-key
+export DEPENDENCY_TRACK_API_KEY=your-dtrack-api-key  # Required when DEPENDENCY_TRACK_AUTH_MODE=api_key
+export DEPENDENCY_TRACK_AUTH_MODE=api_key  # Optional: api_key (default) or user_token
 
 # Optional
 export DEPENDENCY_TRACK_TIMEOUT=30
@@ -134,6 +135,28 @@ The API key is used for **server-to-API authentication only** and is not exposed
 4. Generate a new API key for the team
 5. Copy the key (it won't be shown again)
 6. Store it in `DEPENDENCY_TRACK_API_KEY` environment variable
+
+### Per-User Permissions (`DEPENDENCY_TRACK_AUTH_MODE=user_token`)
+
+With an API key, every MCP user acts with the permissions of the key's team. To have Dependency Track
+enforce each user's own permissions and portfolio access control instead, set
+`DEPENDENCY_TRACK_AUTH_MODE=user_token` (no API key needed). For every MCP request the server exchanges
+the caller's OAuth access token for a Dependency Track session via `POST /api/v1/user/oidc/login`, and
+calls the API with that session (`Authorization: Bearer`). Sessions are cached until the access token
+expires.
+
+Requirements:
+
+1. OIDC is enabled in Dependency Track, using the same identity provider as `MCP_OAUTH_ISSUER`.
+2. The access token can be used at the identity provider's userinfo endpoint (the `openid` scope), and
+   userinfo returns Dependency Track's username claim (`DT_OIDC_USERNAME_CLAIM` /
+   `ALPINE_OIDC_USERNAME_CLAIM`) and, with team synchronization, its teams claim.
+3. The `sub` claim must be the same as in tokens of Dependency Track's own OIDC client, otherwise
+   Dependency Track refuses the login of an existing user ("subject identifier has changed").
+4. With user provisioning disabled in Dependency Track, users must have logged in to the UI once.
+
+Dependency Track validates the access token by calling userinfo with it, so it accepts any valid access
+token from that provider; the MCP server only forwards tokens it has already validated.
 
 ## Usage
 
